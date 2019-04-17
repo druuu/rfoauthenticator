@@ -6,6 +6,8 @@ from tornado.httpclient import HTTPRequest, AsyncHTTPClient
 from oauthenticator.auth0 import Auth0OAuthenticator
 
 
+AUTH0_SUBDOMAIN = os.getenv('AUTH0_SUBDOMAIN')
+
 class RFAuth0OAuthenticator(Auth0OAuthenticator):
     @gen.coroutine
     def authenticate(self, handler, data=None):
