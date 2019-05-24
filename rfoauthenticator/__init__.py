@@ -25,7 +25,9 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         req = HTTPRequest(url,
                           method="POST",
                           headers={"Content-Type": "application/json"},
-                          body=json.dumps(params)
+                          body=json.dumps(params),
+                          connect_timeout=60.0,
+                          request_timeout=60.0,
                           )
         
         resp = yield http_client.fetch(req)
@@ -40,7 +42,9 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         }
         req = HTTPRequest("https://%s.auth0.com/userinfo" % AUTH0_SUBDOMAIN,
                           method="GET",
-                          headers=headers
+                          headers=headers,
+                          connect_timeout=60.0,
+                          request_timeout=60.0,
                           )
         resp = yield http_client.fetch(req)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
