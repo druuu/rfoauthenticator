@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 from tornado.auth import OAuth2Mixin
 from tornado import gen, web
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient
@@ -55,19 +56,8 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         # set_user
         url = "https://%s/user/create" % REFACTORED_ACCOUNTS_DOMAIN
         d = {"email": resp_json['email']}
-        headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        req = HTTPRequest(
-                url,
-                method="POST",
-                body=json.dumps(d),
-                headers=headers,
-                connect_timeout=60.0,
-                request_timeout=60.0,
-        )
-        resp = yield http_client.fetch(req)
-        print(resp)
-        print(resp.body)
-        d = json.loads(resp.body.decode('utf8', 'replace'))
+        r = requests.post(url, data=d)
+        d = r.json()
         print(d)
         return {
             'name': d['username']
