@@ -7,6 +7,7 @@ from oauthenticator.auth0 import Auth0OAuthenticator
 
 
 AUTH0_SUBDOMAIN = os.getenv('AUTH0_SUBDOMAIN')
+REFACTORED_ACCOUNTS_DOMAIN = os.getenv('REFACTORED_ACCOUNTS_DOMAIN')
 
 class RFAuth0OAuthenticator(Auth0OAuthenticator):
     @gen.coroutine
@@ -48,11 +49,23 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
                           )
         resp = yield http_client.fetch(req)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
-
+        username = self.set_user(resp_json['email'])
         return {
-            'name': resp_json["https://refactored.ai/sso_user"],
-            'auth_state': {
-                'access_token': access_token,
-                'auth0_user': resp_json,
-            }
+            'name': username
         }
+
+    def set_user(self, email):
+        url = "https://%s/user/create" % settings.REFACTORED_ACCOUNTS_DOMAIN
+        d = {"email": email}
+        headers={"Accept": "application/json"}
+        req = HTTPRequest(
+                url,
+                method="POST",
+                body=json.dumps(d),
+                headers=headers,
+                connect_timeout=60.0,
+                request_timeout=60.0,
+        )
+        resp = yield http_client.fetch(req)
+        d = json.loads(resp.body.decode('utf8', 'replace'))
+        return d['username']
