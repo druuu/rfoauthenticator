@@ -51,13 +51,8 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         print('resp >>', resp)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
         print('resp_json >>', resp_json)
-        username = self.set_user(resp_json['email'])
-        print('username >>', username)
-        return {
-            'name': username
-        }
 
-    def set_user(self, email):
+        # set_user
         url = "https://%s/user/create" % settings.REFACTORED_ACCOUNTS_DOMAIN
         d = {"email": email}
         headers={"Accept": "application/json"}
@@ -75,4 +70,6 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         print(resp.body)
         d = json.loads(resp.body.decode('utf8', 'replace'))
         print(d)
-        return d['username']
+        return {
+            'name': d['username']
+        }
