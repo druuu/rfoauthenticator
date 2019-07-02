@@ -49,16 +49,13 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
                           request_timeout=60.0,
                           )
         resp = yield http_client.fetch(req)
-        print('resp >>', resp)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
-        print('resp_json >>', resp_json)
 
         # set_user
         url = "https://%s/user/create" % REFACTORED_ACCOUNTS_DOMAIN
         d = {"email": resp_json['email']}
         r = requests.post(url, data=d)
         d = r.json()
-        print(d)
         return {
             'name': d['username']
         }
