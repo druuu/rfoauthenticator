@@ -53,7 +53,7 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         print('resp_json >>', resp_json)
 
         # set_user
-        url = "https://%s/user/create" % settings.REFACTORED_ACCOUNTS_DOMAIN
+        url = "https://%s/user/create" % REFACTORED_ACCOUNTS_DOMAIN
         d = {"email": email}
         headers={"Accept": "application/json"}
         req = HTTPRequest(
