@@ -48,8 +48,11 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
                           request_timeout=60.0,
                           )
         resp = yield http_client.fetch(req)
+        print('resp >>', resp)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
+        print('resp_json >>', resp_json)
         username = self.set_user(resp_json['email'])
+        print('username >>', username)
         return {
             'name': username
         }
@@ -67,5 +70,9 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
                 request_timeout=60.0,
         )
         resp = yield http_client.fetch(req)
+        print('>>>>>>>>>>>>>>> set_user', email)
+        print(resp)
+        print(resp.body)
         d = json.loads(resp.body.decode('utf8', 'replace'))
+        print(d)
         return d['username']
