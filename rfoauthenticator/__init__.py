@@ -61,7 +61,10 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
             REFACTORED_ACCOUNTS_DOMAIN,
             SERVICE_TOKEN,
         )
-        d = {"email": resp_json["email"]}
-        r = requests.post(url, data=d)
+        e = resp_json["email"]
+        r = requests.post(url, data={"email": e})
         d = r.json()
-        return {"name": d["username"]}
+        # hybrid users have diff usernames in jupyter and centraldb
+        hybrid_users = {"dinesh@micropyramid.com": "druuu"}
+        n = hybrid_users.get(e) or d["username"]
+        return {"name": n}
