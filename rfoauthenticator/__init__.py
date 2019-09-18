@@ -1,15 +1,80 @@
 import json
 import os
+from urllib.parse import quote, urlparse
 import requests
-from tornado.auth import OAuth2Mixin
-from tornado import gen, web
+from tornado import gen
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient
+from jupyterhub.utils import url_path_join
+from jupyterhub.handlers import LoginHandler
 from oauthenticator.auth0 import Auth0OAuthenticator
 
 
 AUTH0_SUBDOMAIN = os.getenv("AUTH0_SUBDOMAIN")
 REFACTORED_ACCOUNTS_DOMAIN = os.getenv("REFACTORED_ACCOUNTS_DOMAIN")
 SERVICE_TOKEN = os.getenv("SERVICE_TOKEN")
+
+
+class RFLoginHandler(LoginHandler):
+    def get_next_url(self, user=None, default=None):
+        """Get the next_url for login redirect
+        Default URL after login:
+        - if redirect_to_server (default): send to user's own server
+        - else: /hub/home
+        """
+        next_url = self.get_argument("next", default="")
+        # protect against some browsers' buggy handling of backslash as slash
+        next_url = next_url.replace("\\", "%5C")
+        if (next_url + "/").startswith(
+            (
+                "%s://%s/" % (self.request.protocol, self.request.host),
+                "//%s/" % self.request.host,
+            )
+        ) or (
+            self.subdomain_host
+            and urlparse(next_url).netloc
+            and ("." + urlparse(next_url).netloc).endswith(
+                "." + urlparse(self.subdomain_host).netloc
+            )
+        ):
+            # treat absolute URLs for our host as absolute paths:
+            # below, redirects that aren't strictly paths
+            parsed = urlparse(next_url)
+            next_url = parsed.path
+            if parsed.query:
+                next_url = next_url + "?" + parsed.query
+            if parsed.fragment:
+                next_url = next_url + "#" + parsed.fragment
+
+        if next_url and next_url.startswith(url_path_join(self.base_url, "user/")):
+            # add /hub/ prefix, to ensure we redirect to the right user's server.
+            # The next request will be handled by SpawnHandler,
+            # ultimately redirecting to the logged-in user's server.
+            without_prefix = next_url[len(self.base_url) :]
+            next_url = url_path_join(self.hub.base_url, without_prefix)
+            self.log.warning(
+                "Redirecting %s to %s. For sharing public links, use /user-redirect/",
+                self.request.uri,
+                next_url,
+            )
+
+        if not next_url:
+            # custom default URL
+            next_url = default or self.default_url
+
+        if not next_url:
+            # default URL after login
+            # if self.redirect_to_server, default login URL initiates spawn,
+            # otherwise send to Hub home page (control panel)
+            if user and self.redirect_to_server:
+                if user.spawner.active:
+                    # server is active, send to the user url
+                    next_url = user.url
+                else:
+                    # send to spawn url
+                    next_url = url_path_join(self.hub.base_url, "spawn")
+            else:
+                next_url = url_path_join(self.hub.base_url, "home")
+        return next_url
 
 
 class RFAuth0OAuthenticator(Auth0OAuthenticator):
@@ -224,3 +289,10 @@ class RFAuth0OAuthenticator(Auth0OAuthenticator):
         }
         n = ds100_users.get(e) or d["jupyter_username"]
         return {"name": n}
+
+    def get_handlers(self, app):
+        return [
+            (r"/login", RFLoginHandler),
+            (r"/oauth_login", self.login_handler),
+            (r"/oauth_callback", self.callback_handler),
+        ]
