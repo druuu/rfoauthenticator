@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="rfoauthenticator",
-    version="3.4",
+    version="3.7",
     description="oauthenticator custom auth0 authentication",
     author="refactored",
     author_email="info@refactored.ai",

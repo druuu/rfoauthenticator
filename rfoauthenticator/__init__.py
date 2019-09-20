@@ -2,10 +2,11 @@ import json
 import os
 from urllib.parse import quote, urlparse
 import requests
-from tornado import gen
+from tornado import gen, web
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient
 from jupyterhub.utils import url_path_join
 from jupyterhub.handlers import LoginHandler
+from oauthenticator import OAuthCallbackHandler
 from oauthenticator.auth0 import Auth0OAuthenticator
 
 
@@ -77,7 +78,23 @@ class RFLoginHandler(LoginHandler):
         return next_url
 
 
+class RFOAuthCallbackHandler(OAuthCallbackHandler):
+    async def get(self):
+        self.check_arguments()
+        user = await self.login_user()
+        if user is None:
+            # todo: custom error page?
+            raise web.HTTPError(403)
+        url = "{}://{}{}".format(
+            self.request.protocol, self.request.host, self.get_next_url(user)
+        )
+        url = "https://%s/postauth?next=%s" % (REFACTORED_ACCOUNTS_DOMAIN, quote(url))
+        self.redirect(url)
+
+
 class RFAuth0OAuthenticator(Auth0OAuthenticator):
+    callback_handler = RFOAuthCallbackHandler
+
     @gen.coroutine
     def authenticate(self, handler, data=None):
         code = handler.get_argument("code")
